@@ -1,7 +1,6 @@
 import { SafeEventEmitterProvider } from "@web3auth/base";
 import Web3 from "web3";
 import { createAlchemyWeb3 } from "@alch/alchemy-web3";
-import * as APP_CONSTANTS from "../data/constants";
 
 type TweetsProps = {
   name: string;
@@ -19,14 +18,14 @@ export default class EthereumRpc {
   }
 
   private connectContract() {
-    const alchemyKey = APP_CONSTANTS.ALCHEMY_KEY;
+    const alchemyKey = import.meta.env.VITE_ALCHEMY_KEY!;
 
     const web3 = createAlchemyWeb3(alchemyKey, {
       writeProvider: this.provider,
     });
 
-    const contractABI = require("./contract-abi.json");
-    const contractAddress = APP_CONSTANTS.CONTRACT_ADDRESS;
+    const contractABI = require("../data/contract-abi.json");
+    const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
 
     return new web3.eth.Contract(contractABI, contractAddress);
   }
