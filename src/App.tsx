@@ -1,13 +1,19 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Web3AuthCore } from "@web3auth/core";
-import { WALLET_ADAPTERS, SafeEventEmitterProvider } from "@web3auth/base";
+import {
+  WALLET_ADAPTERS,
+  SafeEventEmitterProvider,
+  WalletLoginError,
+} from "@web3auth/base";
 import { ToastContainer, toast } from "react-toastify";
 import { webAuth } from "./lib/web3auth";
 import RPC from "./lib/evm";
 import Twitter from "./twitter";
 import google from "./assets/google.png";
+import facebook from "./assets/facebook.png";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
+import { capitalizeFirstLetter } from "./utils/capitalizeFirstLetter";
 
 function App() {
   const [web3auth, setWeb3auth] = useState<Web3AuthCore | null>(null);
@@ -68,39 +74,57 @@ function App() {
     setProvider(null);
   };
 
-  const login = async () => {
+  const login = async (event: React.BaseSyntheticEvent) => {
     if (!web3auth) {
       console.log("web3auth not initialized yet");
       return;
     }
 
-    const web3authProvider = await web3auth.connectTo(
-      WALLET_ADAPTERS.OPENLOGIN,
-      {
-        loginProvider: "google",
+    try {
+      const web3authProvider = await web3auth.connectTo(
+        WALLET_ADAPTERS.OPENLOGIN,
+        {
+          loginProvider: event.target.id,
+        }
+      );
+      setProvider(web3authProvider);
+
+      toast.success(
+        `Successfully logged in with ${capitalizeFirstLetter(event.target.id)}`,
+        {
+          position: toast.POSITION.TOP_CENTER,
+        }
+      );
+
+      if (web3authProvider) {
+        let user = await web3auth.getUserInfo();
+
+        if (
+          user.name &&
+          user.name !== null &&
+          user.name !== " " &&
+          user.name !== ""
+        )
+          setUserName(user.name);
+
+        if (
+          user.profileImage &&
+          user.profileImage !== null &&
+          user.profileImage !== " " &&
+          user.profileImage !== ""
+        )
+          setProfileImage(user.profileImage);
       }
-    );
-
-    setProvider(web3authProvider);
-
-    if (web3authProvider) {
-      let user = await web3auth.getUserInfo();
-
-      if (
-        user.name &&
-        user.name !== null &&
-        user.name !== " " &&
-        user.name !== ""
-      )
-        setUserName(user.name);
-
-      if (
-        user.profileImage &&
-        user.profileImage !== null &&
-        user.profileImage !== " " &&
-        user.profileImage !== ""
-      )
-        setProfileImage(user.profileImage);
+    } catch (error) {
+      if ((error as WalletLoginError).code === 5114) {
+        toast.info("Wallet popup closed by user", {
+          position: toast.POSITION.TOP_CENTER,
+        });
+      } else {
+        toast.error("Login failed", {
+          position: toast.POSITION.TOP_CENTER,
+        });
+      }
     }
   };
 
@@ -205,9 +229,14 @@ function App() {
 
   const unloggedInView = (
     <div className='login-account'>
-      <button className='twitter-bg btn login' onClick={login}>
+      <button id='google' className='google-bg btn login' onClick={login}>
         <img src={google} alt='' className='login-btn-img' />
         Sign in with Google
+      </button>
+
+      <button id='facebook' className='facebook-bg btn login' onClick={login}>
+        <img src={facebook} alt='' className='login-btn-img' />
+        Log in with Facebook
       </button>
     </div>
   );
